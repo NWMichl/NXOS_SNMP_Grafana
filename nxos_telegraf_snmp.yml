@@ -1,0 +1,60 @@
+# Playbook to manage Cisco NXOS snmp telegraf configuration files for every ansible host (Switch)
+#
+# VARS: 
+# telegrafhost - The Telegraf instance to configure, specified by FQDN or IP
+# snmpv3_credentials - Playbook and Jinja2 template support SNMPv3 and authpriv
+#
+# Invoke: ansible-playbook -k telegraf_snmp.yml --limit=<HOSTGROUP>
+#
+# Use --limit with caution, because every .conf file not in the running 'ansible_play_hosts_all' variable will be deleted!
+
+---
+- name: TELEGRAF CONFIG
+  hosts: all
+  ignore_errors: no
+  gather_facts: no
+  vars:
+    telegrafhost: <Telegraf Instance by FQDN/IP>
+    snmpv3_name: telegraf
+    snmpv3_authprot: MD5
+    snmpv3_authpw: <SECRET>
+    snmpv3_privprot: AES
+    snmpv3_privpw: <SECRET>
+
+  tasks:
+
+  - name: TEMPLATE OUT TELEGRAF.CONF FILES
+    template:
+      src: nxos_snmp_telegraf.j2
+      dest: /etc/telegraf/telegraf.d/{{inventory_hostname}}_snmp.conf
+    delegate_to: "{{ telegrafhost }}"
+    notify: RELOAD TELEGRAF
+
+  - name: READ LIST OF ALL TELEGRAF.CONF FILES IN DIRECTORY
+    find:
+      paths: /etc/telegraf/telegraf.d/
+      file_type: file
+      recurse: no
+      patterns: "*snmp.conf"
+    delegate_to: "{{ telegrafhost }}"
+    register: files_matched
+    run_once: true
+
+  - name: DELETE STALE TELEGRAF.CONF FILES
+    file:
+      path: "{{ item.path }}"
+      state: absent
+    loop: "{{ files_matched.files|flatten(levels=1) }}"
+    loop_control:
+      label: "{{ item.path }}"
+    delegate_to: "{{ telegrafhost }}"
+    when: (item.path | basename | regex_replace('_snmp.conf') not in ansible_play_hosts_all)
+    notify: RELOAD TELEGRAF
+    run_once: true
+
+  handlers:
+
+  - name: RELOAD TELEGRAF
+    shell: sudo systemctl reload telegraf
+    delegate_to: "{{ telegrafhost }}"
+    run_once: true
