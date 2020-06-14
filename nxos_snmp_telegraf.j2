@@ -66,7 +66,7 @@ priv_password = "{{ snmpv3_privpw }}"
   # oid = "IF-MIB::ifXTable" # Don't walk the whole table, just single metrics specified
   # Interface tag - used to identify interface in metrics database [[inputs.snmp.table.field]]
 [[inputs.snmp.table.field]]
-   name = "ifName" # Oder ifDescr, aber legacy!
+   name = "ifName"
    oid = "IF-MIB::ifName"
    is_tag = true
 [[inputs.snmp.table.field]]
