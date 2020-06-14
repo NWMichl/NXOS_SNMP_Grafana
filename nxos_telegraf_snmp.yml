@@ -29,6 +29,7 @@
       dest: /etc/telegraf/telegraf.d/{{inventory_hostname}}_snmp.conf
     delegate_to: "{{ telegrafhost }}"
     notify: RELOAD TELEGRAF
+    when: ansible_network_os == 'nxos'
 
   - name: READ LIST OF ALL TELEGRAF.CONF FILES IN DIRECTORY
     find:
